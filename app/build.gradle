@@ -54,4 +54,16 @@ dependencies {
     androidTestImplementation 'androidx.test:core:1.2.0'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.ext:truth:1.2.0'
+
+    // Retrofit HTTP client
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:adapter-rxjava3:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-moshi:2.9.0'
+    // Moshi JSON library
+    implementation 'com.squareup.moshi:moshi:1.12.0'
+    implementation 'com.squareup.moshi:moshi-kotlin:1.9.3'
+    kapt 'com.squareup.moshi:moshi-kotlin-codegen:1.12.0'
+    // RxJava for asynchronous programming
+    implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
+    implementation 'io.reactivex.rxjava3:rxjava:3.0.13'
 }
