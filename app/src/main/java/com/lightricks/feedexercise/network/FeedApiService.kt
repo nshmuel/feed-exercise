@@ -16,22 +16,22 @@ interface FeedApiService {
     @GET(value = "/Android/demo/feed.json")
     fun getFeed(): Single<GetFeedResponseDTO>
 
-    companion object{
+    companion object {
         private const val BASE_URL = "https://assets.swishvideoapp.com"
-        const val THUMBNAIL_PREFIX  = "$BASE_URL/Android/demo/catalog/thumbnails/"
+        const val THUMBNAIL_PREFIX = "$BASE_URL/Android/demo/catalog/thumbnails/"
 
         val instance by lazy { create() }
 
          private fun create(): FeedApiService {
             val moshi = Moshi.Builder()
-                .addLast(KotlinJsonAdapterFactory())
-                .build()
+                    .addLast(KotlinJsonAdapterFactory())
+                    .build()
 
             val retrofit = Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(MoshiConverterFactory.create(moshi))
-                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
-                .build()
+                    .baseUrl(BASE_URL)
+                    .addConverterFactory(MoshiConverterFactory.create(moshi))
+                    .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                    .build()
 
             return retrofit.create(FeedApiService::class.java)
         }

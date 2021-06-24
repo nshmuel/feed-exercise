@@ -2,13 +2,15 @@ package com.lightricks.feedexercise.ui.feed
 
 import androidx.lifecycle.*
 import com.lightricks.feedexercise.data.FeedItem
+import com.lightricks.feedexercise.data.FeedRepository
+import com.lightricks.feedexercise.network.FeedApiService
 import com.lightricks.feedexercise.util.Event
 import java.lang.IllegalArgumentException
 
 /**
  * This view model manages the data for [FeedFragment].
  */
-open class FeedViewModel : ViewModel() {
+open class FeedViewModel(private val feedRepository: FeedRepository) : ViewModel() {
     private val isLoading = MutableLiveData<Boolean>()
     private val isEmpty = MutableLiveData<Boolean>()
     private val feedItems = MediatorLiveData<List<FeedItem>>()
@@ -41,6 +43,6 @@ class FeedViewModelFactory : ViewModelProvider.Factory {
             throw IllegalArgumentException("factory used with a wrong class")
         }
         @Suppress("UNCHECKED_CAST")
-        return FeedViewModel() as T
+        return FeedViewModel(FeedRepository(FeedApiService.create())) as T
     }
 }
