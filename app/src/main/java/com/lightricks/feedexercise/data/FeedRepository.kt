@@ -1,7 +1,8 @@
 package com.lightricks.feedexercise.data
 
 import com.lightricks.feedexercise.network.FeedApiService
-import com.lightricks.feedexercise.network.TemplateMetadataItem
+import com.lightricks.feedexercise.network.TemplateMetadataItemDTO
+import com.lightricks.feedexercise.network.toFeedItem
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Observable
@@ -20,18 +21,18 @@ class FeedRepository(private val feedApiService: FeedApiService) {
 
     fun fetchFeed(): Completable {
         return feedApiService.getFeed()
-                .subscribeOn(Schedulers.io())
-                .map { response -> response.templatesMetadata.map { it.toFeedItem() } }
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnSuccess { items -> feedItems.onNext(items) }
-                .ignoreElement()
+            .subscribeOn(Schedulers.io())
+            .map { response -> response.templatesMetadata.map { it.toFeedItem() } }
+            .observeOn(AndroidSchedulers.mainThread())
+            .doOnSuccess { items -> feedItems.onNext(items) }
+            .ignoreElement()
     }
 
-    private fun TemplateMetadataItem.toFeedItem(): FeedItem {
+    private fun TemplateMetadataItemDTO.toFeedItem(): FeedItem {
         return FeedItem(
-                id = id,
-                thumbnailUrl = FeedApiService.THUMBNAIL_PREFIX + templateThumbnailURI,
-                isPremium = isPremium
+            id = id,
+            thumbnailUrl = FeedApiService.THUMBNAIL_PREFIX + templateThumbnailURI,
+            isPremium = isPremium
         )
     }
 
