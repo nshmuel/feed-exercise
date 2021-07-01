@@ -3,7 +3,7 @@ package com.lightricks.feedexercise.ui.feed
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.google.common.truth.Truth.assertThat
 import com.lightricks.feedexercise.data.FeedItem
-import com.lightricks.feedexercise.data.FeedRepositoryImpl
+import com.lightricks.feedexercise.data.FeedRepository
 import com.lightricks.feedexercise.ui.feed.util.testObserver
 import io.reactivex.rxjava3.android.plugins.RxAndroidPlugins
 import io.reactivex.rxjava3.core.Completable
@@ -26,7 +26,7 @@ class FeedViewModelUnitTest {
     var instantLiveData: TestRule = InstantTaskExecutorRule()
 
     private lateinit var testedFeedViewModel: FeedViewModel
-    private lateinit var mockFeedRepository: FeedRepositoryImpl
+    private lateinit var mockFeedRepository: FeedRepository
     private val templateFeedItems = arrayListOf(
         FeedItem(id = "id 1", thumbnailUrl = "url 1", isPremium = true),
         FeedItem(id = "id 2", thumbnailUrl = "url 2", isPremium = true)
@@ -39,7 +39,7 @@ class FeedViewModelUnitTest {
         RxJavaPlugins.setIoSchedulerHandler { Schedulers.trampoline() }
         RxJavaPlugins.setSingleSchedulerHandler { Schedulers.trampoline() }
 
-        mockFeedRepository = Mockito.mock(FeedRepositoryImpl::class.java).apply {
+        mockFeedRepository = Mockito.mock(FeedRepository::class.java).apply {
             `when`(fetchFeed()).thenReturn(Completable.complete())
             `when`(getFeedItems()).thenReturn(Observable.just(templateFeedItems))
         }
