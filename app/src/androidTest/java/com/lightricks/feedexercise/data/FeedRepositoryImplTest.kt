@@ -6,11 +6,14 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth
+import com.lightricks.feedexercise.database.FeedItemDao
 import com.lightricks.feedexercise.network.FeedApiService
 import com.lightricks.feedexercise.network.GetFeedResponseDTO
 import com.lightricks.feedexercise.network.TemplateMetadataItemDTO
 import com.lightricks.feedexercise.network.toFeedItem
 import io.reactivex.rxjava3.android.plugins.RxAndroidPlugins
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -32,25 +35,29 @@ class FeedRepositoryImplTest {
     //todo: add the tests here
     private lateinit var feedRepositoryImpl: FeedRepositoryImpl
     private lateinit var mockFeedApiService: FeedApiService
+    private lateinit var mockFeedItemDao: FeedItemDao
 
     @Before
     fun setup() {
-        RxAndroidPlugins.setMainThreadSchedulerHandler { Schedulers.trampoline() }
+        RxAndroidPlugins.setInitMainThreadSchedulerHandler { Schedulers.trampoline() }
         RxJavaPlugins.setComputationSchedulerHandler { Schedulers.trampoline() }
         RxJavaPlugins.setIoSchedulerHandler { Schedulers.trampoline() }
         RxJavaPlugins.setSingleSchedulerHandler { Schedulers.trampoline() }
 
-        mockFeedApiService = mock(FeedApiService::class.java)
+        mockFeedApiService = mock(FeedApiService::class.java).apply {
+            `when`(getFeed()).thenReturn(Single.just(GetFeedResponseDTO(templateMetaDataItemDTOs)))
+        }
 
-        feedRepositoryImpl = FeedRepositoryImpl(mockFeedApiService)
+        mockFeedItemDao = mock(FeedItemDao::class.java).apply {
+            `when`(getAll()).thenReturn(Observable.just(feedItemEntities))
+            `when`(insertAll(feedItemEntities)).thenReturn(Completable.complete())
+        }
+        feedRepositoryImpl = FeedRepositoryImpl(mockFeedApiService, mockFeedItemDao)
     }
 
     @Test
     fun getFeedItems_whileFetchedFeedSucceeded_shouldReturnFetchedData() {
-        mockFeedApiService.apply {
-            `when`(getFeed()).thenReturn(Single.just(GetFeedResponseDTO(feedItems)))
-        }
-        val expected = feedItems.map { it.toFeedItem() }
+        val expected = feedItems
 
         feedRepositoryImpl.fetchFeed().test().assertComplete()
 
@@ -70,16 +77,20 @@ class FeedRepositoryImplTest {
 
     @Test
     fun fetchFeed_whenFetchingData_shouldBeUsingTheApiService() {
-        mockFeedApiService.apply {
-            `when`(getFeed()).thenReturn(Single.just(GetFeedResponseDTO(arrayListOf())))
-        }
         feedRepositoryImpl.fetchFeed().test().assertComplete()
 
         verify(mockFeedApiService, times(1)).getFeed()
     }
 
+    @Test
+    fun fetchFeed_whenFetchingData_shouldBeUsingDaoToInsertAll() {
+        feedRepositoryImpl.fetchFeed().test().assertComplete()
+
+        verify(mockFeedItemDao, times(1)).insertAll(feedItemEntities)
+    }
+
     companion object {
-        val feedItems = arrayListOf(
+        val templateMetaDataItemDTOs = arrayListOf(
             TemplateMetadataItemDTO(
                 configuration = "configuration 1",
                 id = "id 1",
@@ -99,6 +110,8 @@ class FeedRepositoryImplTest {
                 templateThumbnailURI = "templateThumbnailURI 2"
             )
         )
+        val feedItems = templateMetaDataItemDTOs.map { it.toFeedItem() }
+        val feedItemEntities = feedItems.map { it.toFeedItemEntity() }
     }
 }
 
