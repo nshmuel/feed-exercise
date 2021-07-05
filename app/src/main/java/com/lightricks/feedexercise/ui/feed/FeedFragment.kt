@@ -37,7 +37,7 @@ class FeedFragment : Fragment() {
 
     private fun setupViewModel() {
         viewModel = ViewModelProvider(this, FeedViewModelFactory())
-            .get(FeedViewModel::class.java)
+                .get(FeedViewModel::class.java)
 
         viewModel.getFeedItems().observe(viewLifecycleOwner, Observer { items ->
             feedAdapter.items = items
@@ -66,6 +66,6 @@ class FeedFragment : Fragment() {
 
     private fun showNetworkError() {
         Snackbar.make(dataBinding.mainContent, R.string.network_error, LENGTH_LONG)
-            .show()
+                .show()
     }
 }

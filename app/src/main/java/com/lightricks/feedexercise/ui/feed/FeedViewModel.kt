@@ -1,32 +1,98 @@
 package com.lightricks.feedexercise.ui.feed
 
+import android.util.Log
 import androidx.lifecycle.*
+import com.lightricks.feedexercise.R
 import com.lightricks.feedexercise.data.FeedItem
+import com.lightricks.feedexercise.data.FeedRepositoryImpl
+import com.lightricks.feedexercise.data.FeedRepository
+import com.lightricks.feedexercise.network.FeedApiService
 import com.lightricks.feedexercise.util.Event
-import java.lang.IllegalArgumentException
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.disposables.Disposable
 
 /**
  * This view model manages the data for [FeedFragment].
  */
-open class FeedViewModel : ViewModel() {
-    private val isLoading = MutableLiveData<Boolean>()
-    private val isEmpty = MutableLiveData<Boolean>()
-    private val feedItems = MediatorLiveData<List<FeedItem>>()
-    private val networkErrorEvent = MutableLiveData<Event<String>>()
+open class FeedViewModel(private val repository: FeedRepository) : ViewModel() {
 
-    fun getIsLoading(): LiveData<Boolean> = isLoading
-    fun getIsEmpty(): LiveData<Boolean> = isEmpty
-    fun getFeedItems(): LiveData<List<FeedItem>> = feedItems
+    private val stateLiveData = MutableLiveData<State>()
+    private val networkErrorEvent = MutableLiveData<Event<String>>()
+    private var prevRefreshFeedTask: Disposable? = null
+    private var getFeedFromRepoStream: Disposable? = null
+
+    fun getIsLoading(): LiveData<Boolean> = Transformations.map(stateLiveData) { it.isLoading }
+    fun getIsEmpty(): LiveData<Boolean> = Transformations.map(stateLiveData) { it.isFeedEmpty() }
+    fun getFeedItems(): LiveData<List<FeedItem>> =
+        Transformations.map(stateLiveData) { it.feedItems }
+
     fun getNetworkErrorEvent(): LiveData<Event<String>> = networkErrorEvent
 
     init {
+        observeRepository()
         refresh()
     }
 
     fun refresh() {
-        //todo: fix the implementation
-        isLoading.value = false
-        isEmpty.value = true
+        disposePrevRefreshFeedTask()
+        setStartLoading()
+        prevRefreshFeedTask = repository.fetchFeed()
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ setStoppedLoading() },
+                { error ->
+                    handleNetworkError(error)
+                    setStoppedLoading()
+                })
+    }
+
+    private fun disposePrevRefreshFeedTask() {
+        prevRefreshFeedTask?.dispose()
+        prevRefreshFeedTask = null
+    }
+
+    private fun handleNetworkError(error: Throwable?) {
+        networkErrorEvent.value = Event(R.string.repository_network_error.toString())
+        Log.e(TAG, "Failed to fetch feed from network", error)
+    }
+
+    private fun observeRepository() {
+        getFeedFromRepoStream = repository.getFeedItems().subscribe({ items ->
+            stateLiveData.value = when (stateLiveData.value) {
+                null -> State(feedItems = items)
+                else -> stateLiveData.value!!.copy(feedItems = items)
+            }
+        }, { error -> Log.e(TAG, "Failed to get feed from repository", error) })
+    }
+
+    private fun setStartLoading() {
+        stateLiveData.value = stateLiveData.value!!.copy(isLoading = true)
+    }
+
+    private fun setStoppedLoading() {
+        stateLiveData.value = stateLiveData.value!!.copy(isLoading = false)
+    }
+
+    data class State(
+        val isLoading: Boolean = false,
+        val feedItems: List<FeedItem> = emptyList()
+    ) {
+        fun isFeedEmpty(): Boolean {
+            return feedItems.isEmpty()
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        disposePrevRefreshFeedTask()
+        disposeFeedStream()
+    }
+
+    private fun disposeFeedStream() {
+        getFeedFromRepoStream?.dispose()
+    }
+
+    companion object {
+        private const val TAG = "FeedViewModel"
     }
 }
 
@@ -41,6 +107,6 @@ class FeedViewModelFactory : ViewModelProvider.Factory {
             throw IllegalArgumentException("factory used with a wrong class")
         }
         @Suppress("UNCHECKED_CAST")
-        return FeedViewModel() as T
+        return FeedViewModel(FeedRepositoryImpl(FeedApiService.instance)) as T
     }
 }
