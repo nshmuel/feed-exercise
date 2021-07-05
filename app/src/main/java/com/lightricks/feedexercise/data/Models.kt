@@ -1,5 +1,7 @@
 package com.lightricks.feedexercise.data
 
+import com.lightricks.feedexercise.database.FeedItemEntity
+
 /**
  * This data class is our internal representation of a feed item.
  * In a real-life application this is template meta-data for a user's project.
@@ -10,3 +12,7 @@ data class FeedItem(
     val thumbnailUrl: String,
     val isPremium: Boolean
 )
+
+fun FeedItem.toFeedItemEntity(): FeedItemEntity {
+    return FeedItemEntity(id = id, thumbnailUrl = thumbnailUrl, isPremium = isPremium)
+}

@@ -1,11 +1,13 @@
 package com.lightricks.feedexercise.ui.feed
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.*
 import com.lightricks.feedexercise.R
 import com.lightricks.feedexercise.data.FeedItem
 import com.lightricks.feedexercise.data.FeedRepositoryImpl
 import com.lightricks.feedexercise.data.FeedRepository
+import com.lightricks.feedexercise.database.FeedRoomDatabase
 import com.lightricks.feedexercise.network.FeedApiService
 import com.lightricks.feedexercise.util.Event
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -56,20 +58,28 @@ open class FeedViewModel(private val repository: FeedRepository) : ViewModel() {
     }
 
     private fun observeRepository() {
-        getFeedFromRepoStream = repository.getFeedItems().subscribe({ items ->
-            stateLiveData.value = when (stateLiveData.value) {
-                null -> State(feedItems = items)
-                else -> stateLiveData.value!!.copy(feedItems = items)
-            }
-        }, { error -> Log.e(TAG, "Failed to get feed from repository", error) })
+        getFeedFromRepoStream = repository.getFeedItems()
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ items ->
+                stateLiveData.value = when (stateLiveData.value) {
+                    null -> State(feedItems = items)
+                    else -> stateLiveData.value!!.copy(feedItems = items)
+                }
+            }, { error -> Log.e(TAG, "Failed to get feed from repository", error) })
     }
 
     private fun setStartLoading() {
-        stateLiveData.value = stateLiveData.value!!.copy(isLoading = true)
+        stateLiveData.value = when (stateLiveData.value) {
+            null -> State()
+            else -> stateLiveData.value!!.copy(isLoading = true)
+        }
     }
 
     private fun setStoppedLoading() {
-        stateLiveData.value = stateLiveData.value!!.copy(isLoading = false)
+        stateLiveData.value = when (stateLiveData.value) {
+            null -> State()
+            else -> stateLiveData.value!!.copy(isLoading = false)
+        }
     }
 
     data class State(
@@ -101,12 +111,15 @@ open class FeedViewModel(private val repository: FeedRepository) : ViewModel() {
  * It's not necessary to use this factory at this stage. But if we will need to inject
  * dependencies into [FeedViewModel] in the future, then this is the place to do it.
  */
-class FeedViewModelFactory : ViewModelProvider.Factory {
+class FeedViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {
         if (!modelClass.isAssignableFrom(FeedViewModel::class.java)) {
             throw IllegalArgumentException("factory used with a wrong class")
         }
+        val apiService = FeedApiService.instance
+        val db = FeedRoomDatabase.getInstance(context.applicationContext)
+        val feedRepository = FeedRepositoryImpl(apiService, db.feedItemsDao())
         @Suppress("UNCHECKED_CAST")
-        return FeedViewModel(FeedRepositoryImpl(FeedApiService.instance)) as T
+        return FeedViewModel(feedRepository) as T
     }
 }
