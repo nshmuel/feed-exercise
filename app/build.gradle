@@ -78,4 +78,10 @@ dependencies {
     // RxJava for asynchronous programming
     implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
     implementation 'io.reactivex.rxjava3:rxjava:3.0.13'
+
+    // Room persistence library
+    implementation 'androidx.room:room-runtime:2.3.0'
+    implementation 'androidx.room:room-rxjava3:2.3.0'
+    kapt 'androidx.room:room-compiler:2.3.0'
+    debugImplementation 'com.amitshekhar.android:debug-db:1.0.6'
 }
